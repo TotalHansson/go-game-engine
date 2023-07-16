@@ -1,0 +1,66 @@
+# Full configuration reference: https://github.com/golangci/golangci-lint/blob/master/.golangci.reference.yml
+
+linters:
+  # Enable all available linters.
+  enable-all: true
+
+  disable:
+    - forbidigo
+    - gomnd
+    - gofumpt
+    - wsl
+    - nosnakecase
+
+  # Run only fast linters from enabled linters set (first run won't be fast)
+  fast: true
+
+linters-settings:
+  gocognit:
+    # Minimal code complexity to report
+    min-complexity: 10
+
+  gocyclo:
+    # Minimal code complexity to report.
+    min-complexity: 10
+
+  govet:
+    # Report about shadowed variables.
+    check-shadowing: true
+
+  maligned:
+    # Print struct with more effective memory layout or not.
+    suggest-new: true
+
+  misspell:
+    # Correct spellings using locale preferences for US or UK.
+    # Setting locale to US will correct the British spelling of 'colour' to 'color'.
+    # Default is to use a neutral variety of English.
+    locale: US
+
+  nestif:
+    # Minimal complexity of if statements to report.
+    min-complexity: 4
+
+  nlreturn:
+    # Size of the block (including return statement that is still "OK")
+    # so no return split required.
+    block-size: 2
+
+  # goimports:
+    # Put imports beginning with prefix after 3rd-party packages.
+    # It's a comma-separated list of prefixes.
+    # local-prefixes: game-engine/rts
+
+  gci:
+    # Section configuration to compare against.
+    # Section names are case-insensitive and may contain parameters in ().
+    # Default: ["standard", "default"]
+    sections:
+      - standard # Captures all standard packages if they do not match another section.
+      - prefix(game-engine/rts) # Groups all imports with the specified Prefix.
+      - default # Contains all imports that could not be matched to another section type.
+    custom-order: true
+
+# issues:
+  # Fix found issues (if it's supported by the linter).
+  # fix: true
