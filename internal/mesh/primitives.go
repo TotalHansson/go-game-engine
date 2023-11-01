@@ -17,6 +17,17 @@ var (
 		-1.0, 1.0, 0.0, 1.0, 1.0,
 	}
 
+	Sq = []float32{
+		// first triangle
+		0.5, 0.5, 0.0, // top right
+		0.5, -0.5, 0.0, // bottom right
+		-0.5, 0.5, 0.0, // top left
+		// second triangle
+		0.5, -0.5, 0.0, // bottom right
+		-0.5, -0.5, 0.0, // bottom left
+		-0.5, 0.5, 0.0, // top left
+	}
+
 	Cube = []float32{
 		// Bottom
 		-1.0, -1.0, -1.0, 0.0, 0.0,

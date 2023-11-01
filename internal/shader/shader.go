@@ -25,11 +25,34 @@ type Shader struct {
 	fragmentShaderFilename string
 }
 
+func NewSolidShader() (Shader, error) {
+	wd, _ := os.Getwd()
+	s := Shader{
+		vertexShaderFilename:   wd + "/resources/shaders/solid.vert",
+		fragmentShaderFilename: wd + "/resources/shaders/solid.frag",
+	}
+
+	if err := s.init(); err != nil {
+		return s, err
+	}
+
+	// gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 3*4, nil)
+	// gl.EnableVertexAttribArray(0)
+
+	// gl.BindFragDataLocation(s.program, 0, gl.Str("outputColor\x00"))
+
+	// vertAttrib := uint32(gl.GetAttribLocation(s.program, gl.Str("vert\x00")))
+	// gl.EnableVertexAttribArray(vertAttrib)
+	// gl.VertexAttribPointerWithOffset(vertAttrib, 3, gl.FLOAT, false, 5*4, 0)
+
+	return s, nil
+}
+
 func NewBasicShader() (Shader, error) {
 	wd, _ := os.Getwd()
 	s := Shader{
-		vertexShaderFilename:   filepath.Join(wd, "../resources/shaders/texture.vert"),
-		fragmentShaderFilename: filepath.Join(wd, "../resources/shaders/texture.frag"),
+		vertexShaderFilename:   filepath.Join(wd, "resources/shaders/texture.vert"),
+		fragmentShaderFilename: filepath.Join(wd, "resources/shaders/texture.frag"),
 	}
 
 	if err := s.init(); err != nil {
@@ -56,8 +79,8 @@ func NewBasicShader() (Shader, error) {
 func NewGridShader() (Shader, error) {
 	wd, _ := os.Getwd()
 	s := Shader{
-		vertexShaderFilename:   filepath.Join(wd, "../resources/shaders/grid.vert"),
-		fragmentShaderFilename: filepath.Join(wd, "../resources/shaders/grid.frag"),
+		vertexShaderFilename:   filepath.Join(wd, "resources/shaders/grid.vert"),
+		fragmentShaderFilename: filepath.Join(wd, "resources/shaders/grid.frag"),
 	}
 
 	if err := s.init(); err != nil {
@@ -101,6 +124,10 @@ func (s *Shader) init() error {
 	s.UseProgram()
 	s.getUniformLocations()
 
+	// Shaders can be deleted once the program has been created
+	gl.DeleteShader(vertexShader)
+	gl.DeleteShader(fragmentShader)
+
 	return nil
 }
 
@@ -125,6 +152,10 @@ func (s *Shader) Reload() error {
 	s.UseProgram()
 	s.getUniformLocations()
 	s.SetProjection(s.projection)
+
+	// Shaders can be deleted once the program has been created
+	gl.DeleteShader(vertexShader)
+	gl.DeleteShader(fragmentShader)
 
 	return nil
 }

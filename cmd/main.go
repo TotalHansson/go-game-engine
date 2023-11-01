@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"runtime"
+	"unsafe"
 
 	"game-engine/rts/internal/camera"
 	"game-engine/rts/internal/gameobject"
@@ -96,7 +98,7 @@ func main() {
 				reloadShaders()
 			}
 
-			// Z to toggle between full, wireframe, or vertex render
+			// Z to toggle between full or wireframe render
 		case glfw.KeyZ:
 			if action == glfw.Press {
 				if drawMode == gl.FILL {
@@ -133,168 +135,14 @@ func main() {
 	window.SetCursorPosCallback(mouseCallback)
 	window.SetInputMode(glfw.CursorMode, glfw.CursorDisabled)
 
-	// --- CUBE -----------------------------------------------------------------------------------
+	setGlobalGLState()
 
-	// vertexShaderFilename := filepath.Join(wd, "../resources/shaders/texture.vert")
-	// fragmentShaderFilename := filepath.Join(wd, "../resources/shaders/texture.frag")
-
-	// cubeMesh := mesh.MakeCube()
-
-	// cubeShader, err := shader.NewBasicShader()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// squareTexture, err := texture.New("../resources/textures/square.png")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// cube := gameobject.GameObject{
-	// 	Position: mgl32.Vec3{0.0, 0.0, 0.0},
-	// 	Rotation: mgl32.Vec3{0.0, 0.0, 0.0},
-	// 	Scale:    mgl32.Vec3{1.0, 1.0, 1.0},
-
-	// 	Shader:  &cubeShader,
-	// 	Texture: &squareTexture,
-	// 	Mesh:    &cubeMesh,
-	// }
+	thing := makeThing()
 
 	cube := makeCube()
 	grid := makeGrid()
 
-	// cubeShader, err := shader.New(vertexShaderFile, fragmentShaderFile)
-	// if err != nil {
-	// 	fmt.Printf("Error creating shader: %v\n", err)
-	// 	panic(err)
-	// }
-	// shaders = append(shaders, cubeShader)
-
-	// Setup
-	// cubeShader.SetProjection(camera.Projection())
-	// cubeShader.SetView(camera.View())
-
-	// modelMat := mgl32.Ident4()
-	// cubeShader.SetModel(modelMat)
-
-	// program := cubeShader.GetProgram()
-
-	// textureUniform := gl.GetUniformLocation(program, gl.Str("tex\x00"))
-	// gl.Uniform1i(textureUniform, 0)
-
-	// gl.BindFragDataLocation(program, 0, gl.Str("outputColor\x00"))
-
-	// texture, err := texture.New("../resources/textures/square.png")
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// }
-
-	// var vao uint32
-	// gl.GenVertexArrays(1, &vao)
-	// gl.BindVertexArray(vao)
-
-	// var vbo uint32
-	// gl.GenBuffers(1, &vbo)
-	// gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	// gl.BufferData(gl.ARRAY_BUFFER, len(mesh.Cube)*4, gl.Ptr(mesh.Cube), gl.STATIC_DRAW)
-
-	// vertAttrib := uint32(gl.GetAttribLocation(program, gl.Str("vert\x00")))
-	// gl.EnableVertexAttribArray(vertAttrib)
-	// gl.VertexAttribPointerWithOffset(vertAttrib, 3, gl.FLOAT, false, 5*4, 0)
-
-	// cubeTexCoordAttrib := uint32(gl.GetAttribLocation(program, gl.Str("vertTexCoord\x00")))
-	// gl.EnableVertexAttribArray(cubeTexCoordAttrib)
-	// gl.VertexAttribPointerWithOffset(cubeTexCoordAttrib, 2, gl.FLOAT, false, 5*4, 3*4)
-
-	// --- TRIANGLE -------------------------------------------------------------------------------
-
-	// triangleShader, err := shader.New(vertexShaderFile, fragmentShaderFile)
-	// if err != nil {
-	// 	fmt.Printf("Error creating shader: %v\n", err)
-	// 	panic(err)
-	// }
-	// shaders = append(shaders, triangleShader)
-
-	// Setup
-	// 	triangleShader.SetProjection(camera.Projection())
-	//
-	// 	triangleShader.SetView(camera.View())
-	//
-	// 	triangleModel := mgl32.Ident4()
-	// 	triangleModel = triangleModel.Mul4(mgl32.Translate3D(3.0, 3.0, 0.0))
-	// 	// triangleModel.Set(1, 3, 3.0)
-	// 	triangleShader.SetModel(triangleModel)
-	//
-	// 	triangleProgram := triangleShader.GetProgram()
-	//
-	// 	triangletextureUniform := gl.GetUniformLocation(triangleProgram, gl.Str("tex\x00"))
-	// 	gl.Uniform1i(triangletextureUniform, 0)
-	//
-	// 	gl.BindFragDataLocation(triangleProgram, 0, gl.Str("outputColor\x00"))
-	//
-	// 	var triangleVao uint32
-	// 	gl.GenVertexArrays(1, &triangleVao)
-	// 	gl.BindVertexArray(triangleVao)
-	//
-	// 	var triangleVbo uint32
-	// 	gl.GenBuffers(1, &triangleVbo)
-	// 	gl.BindBuffer(gl.ARRAY_BUFFER, triangleVbo)
-	// 	gl.BufferData(gl.ARRAY_BUFFER, len(model.Triangle)*4, gl.Ptr(model.Triangle), gl.STATIC_DRAW)
-	//
-	// 	triangleVertAttrib := uint32(gl.GetAttribLocation(triangleProgram, gl.Str("vert\x00")))
-	// 	gl.EnableVertexAttribArray(triangleVertAttrib)
-	// 	gl.VertexAttribPointerWithOffset(triangleVertAttrib, 3, gl.FLOAT, false, 5*4, 0)
-	//
-	// 	triangleTexCoordAttrib := uint32(gl.GetAttribLocation(triangleProgram, gl.Str("vertTexCoord\x00")))
-	// 	gl.EnableVertexAttribArray(triangleTexCoordAttrib)
-	// 	gl.VertexAttribPointerWithOffset(triangleTexCoordAttrib, 2, gl.FLOAT, false, 5*4, 3*4)
-
-	// --- GRID -----------------------------------------------------------------------------------
-
-	// 	gridShader, err := shader.NewGridShader()
-	// 	if err != nil {
-	// 		fmt.Printf("Error creating grid shader: %v\n", err)
-	// 		panic(err)
-	// 	}
-	// 	shaders = append(shaders, &gridShader)
-	//
-	// 	gridShader.SetProjection(camera.Projection())
-	// 	gridShader.SetView(camera.View())
-	//
-	// 	gridModel := mgl32.Ident4()
-	// 	// gridModel = gridModel.Mul4(mgl32.Scale3D(3, 3, 1))
-	// 	// gridModel = gridModel.Mul4(mgl32.HomogRotate3DX(mgl32.DegToRad(90)))
-	// 	gridShader.SetModel(gridModel)
-	//
-	// 	gridProgram := gridShader.GetProgram()
-	//
-	// 	// gl.BindFragDataLocation(gridProgram, 0, gl.Str("outputColor\x00"))
-	//
-	// 	var gridVao uint32
-	// 	gl.GenVertexArrays(1, &gridVao)
-	// 	gl.BindVertexArray(gridVao)
-	//
-	// 	var gridVbo uint32
-	// 	gl.GenBuffers(1, &gridVbo)
-	// 	gl.BindBuffer(gl.ARRAY_BUFFER, gridVbo)
-	// 	gl.BufferData(gl.ARRAY_BUFFER, len(mesh.Plane)*4, gl.Ptr(mesh.Plane), gl.STATIC_DRAW)
-	//
-	// 	gridVertAttrib := uint32(gl.GetAttribLocation(gridProgram, gl.Str("vert\x00")))
-	// 	gl.EnableVertexAttribArray(gridVertAttrib)
-	// 	gl.VertexAttribPointerWithOffset(gridVertAttrib, 3, gl.FLOAT, false, 5*4, 0)
-	//
-	// 	gridTexCoordAttrib := uint32(gl.GetAttribLocation(gridProgram, gl.Str("uv\x00")))
-	// 	gl.EnableVertexAttribArray(gridTexCoordAttrib)
-	// 	gl.VertexAttribPointerWithOffset(gridTexCoordAttrib, 2, gl.FLOAT, false, 5*4, 3*4)
-
 	// --------------------------------------------------------------------------------------------
-
-	// Configure global settings
-	gl.Enable(gl.DEPTH_TEST)
-	gl.Enable(gl.BLEND)
-	gl.DepthFunc(gl.LESS)
-	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-	gl.ClearColor(0.2, 0.2, 0.2, 1.0)
 
 	// angle := 0.0
 	previousTime := float32(glfw.GetTime())
@@ -303,7 +151,7 @@ func main() {
 	for !window.ShouldClose() {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-		// Update
+		// Calculate time since last frame
 		time := float32(glfw.GetTime())
 		dt := time - previousTime
 		previousTime = time
@@ -311,60 +159,17 @@ func main() {
 		// angle += elapsed
 		// model = mgl32.HomogRotate3D(float32(angle), mgl32.Vec3{0, 1, 0})
 
+		// Update resources
 		camera.Update(dt)
-
-		// Update
 		cube.Update(dt)
+		thing.Update(dt)
 
-		// Render cube
+		// Render resources
 		cube.Render(camera)
+		thing.Render2(camera)
+
+		// Draw grid last for some reason? Why is this?
 		grid.Render(camera)
-
-		// gl.UseProgram(cubeShader.GetProgram())
-		// cubeShader.SetModel(modelMat)
-		// cubeShader.SetView(camera.View())
-
-		// gl.BindVertexArray(cube.Mesh.Vao)
-		// gl.BindBuffer(gl.ARRAY_BUFFER, cube.Mesh.Vbo)
-
-		// gl.ActiveTexture(gl.TEXTURE0)
-		// gl.BindTexture(gl.TEXTURE_2D, squareTexture.Handle)
-
-		// gl.DrawArrays(gl.TRIANGLES, 0, 6*2*3)
-
-		// gl.BindBuffer(gl.ARRAY_BUFFER, 0)
-		// done with cube
-
-		// render triangle
-		// 		gl.UseProgram(triangleShader.GetProgram())
-		// 		triangleShader.SetModel(triangleModel)
-		// 		triangleShader.SetView(camera.View())
-		//
-		// 		gl.BindVertexArray(triangleVao)
-		// 		gl.BindBuffer(gl.ARRAY_BUFFER, triangleVbo)
-		//
-		// 		gl.ActiveTexture(gl.TEXTURE0)
-		// 		gl.BindTexture(gl.TEXTURE_2D, texture)
-		//
-		// 		gl.DrawArrays(gl.TRIANGLES, 0, 3)
-		//
-		// 		gl.BindBuffer(gl.ARRAY_BUFFER, 0)
-		// done with triangle
-
-		// render grid
-		// 		gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
-		// 		gl.UseProgram(gridShader.GetProgram())
-		// 		gridShader.SetModel(gridModel)
-		// 		gridShader.SetView(camera.View())
-		//
-		// 		gl.BindVertexArray(gridVao)
-		// 		gl.BindBuffer(gl.ARRAY_BUFFER, gridVbo)
-		//
-		// 		gl.DrawArrays(gl.TRIANGLES, 0, 3*2)
-		//
-		// 		gl.BindBuffer(gl.ARRAY_BUFFER, 0)
-		// 		gl.PolygonMode(gl.FRONT_AND_BACK, drawMode)
-		// done with grid
 
 		// Maintenance
 		window.SwapBuffers()
@@ -372,15 +177,38 @@ func main() {
 	}
 }
 
+func makeThing() *gameobject.GameObject {
+	wd, _ := os.Getwd()
+	thing, err := mesh.FromFile(wd + "/resources/meshes/cube.obj")
+	if err != nil {
+		log.Fatal("error making thing", err)
+	}
+
+	shader, err := shader.NewSolidShader()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	obj := gameobject.NewBuilder().
+		Position(mgl32.Vec3{0.0, 3.0, 0.0}).
+		// Scale(mgl32.Vec3{0.05, 0.05, 0.05}).
+		Mesh(&thing).Shader(&shader).Build()
+
+	return obj
+}
+
 func makeCube() gameobject.GameObject {
 	cubeMesh := mesh.MakeCube()
+	// wd, _ := os.Getwd()
+	// cubeMesh, err := mesh.FromFile(wd + "/resources/mesh/cube.obj")
 
 	cubeShader, err := shader.NewBasicShader()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	squareTexture, err := texture.New("../resources/textures/square.png")
+	wd, _ := os.Getwd()
+	squareTexture, err := texture.New(wd + "/resources/textures/square.png")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -462,4 +290,19 @@ func initOpenGL() {
 
 	version := gl.GoStr(gl.GetString(gl.VERSION))
 	log.Println("OpenGL version", version)
+}
+
+func setGlobalGLState() {
+	gl.Enable(gl.DEBUG_OUTPUT)
+	gl.DebugMessageCallback(func(
+		_ uint32, _ uint32, _ uint32, _ uint32, _ int32, message string, _ unsafe.Pointer,
+	) {
+		fmt.Printf("OPENGL MESSAGE: %v\n", message)
+	}, nil)
+
+	gl.Enable(gl.DEPTH_TEST)
+	gl.Enable(gl.BLEND)
+	gl.DepthFunc(gl.LESS)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+	gl.ClearColor(0.2, 0.2, 0.2, 1.0)
 }

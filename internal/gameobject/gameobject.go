@@ -21,15 +21,17 @@ type GameObject struct {
 }
 
 func (g *GameObject) Update(dt float32) {
-	g.Shader.UseProgram()
-	modelMat := mgl32.Ident4()
-	modelMat = modelMat.Mul4(mgl32.Translate3D(g.Position[0], g.Position[1], g.Position[2]))
-	modelMat = modelMat.Mul4(mgl32.Scale3D(g.Scale[0], g.Scale[1], g.Scale[2]))
-	modelMat = modelMat.Mul4(mgl32.HomogRotate3DX(g.Rotation[0]))
-	modelMat = modelMat.Mul4(mgl32.HomogRotate3DY(g.Rotation[1]))
-	modelMat = modelMat.Mul4(mgl32.HomogRotate3DZ(g.Rotation[2]))
+	if g.Shader != nil {
+		g.Shader.UseProgram()
+		modelMat := mgl32.Ident4()
+		modelMat = modelMat.Mul4(mgl32.Translate3D(g.Position[0], g.Position[1], g.Position[2]))
+		modelMat = modelMat.Mul4(mgl32.Scale3D(g.Scale[0], g.Scale[1], g.Scale[2]))
+		modelMat = modelMat.Mul4(mgl32.HomogRotate3DX(g.Rotation[0]))
+		modelMat = modelMat.Mul4(mgl32.HomogRotate3DY(g.Rotation[1]))
+		modelMat = modelMat.Mul4(mgl32.HomogRotate3DZ(g.Rotation[2]))
 
-	g.Shader.SetModel(modelMat)
+		g.Shader.SetModel(modelMat)
+	}
 }
 
 func (g *GameObject) Render(c *camera.Camera) {
@@ -46,4 +48,22 @@ func (g *GameObject) Render(c *camera.Camera) {
 
 	mesh.Unbind()
 	shader.UnbindProgram()
+}
+
+func (g *GameObject) Render2(c *camera.Camera) {
+	if g.Shader != nil {
+		g.Shader.UseProgram()
+		g.Shader.SetView(c.View())
+		g.Shader.SetProjection(c.Projection())
+
+		if g.Texture != nil {
+			g.Texture.Bind()
+		}
+
+		if g.Mesh != nil {
+			g.Mesh.Draw()
+		}
+
+		// shader.UnbindProgram()
+	}
 }
