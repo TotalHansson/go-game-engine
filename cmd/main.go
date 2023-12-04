@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"time"
 	"unsafe"
 
 	"game-engine/rts/internal/camera"
@@ -28,8 +29,72 @@ var (
 	drawMode uint32 = gl.FILL
 )
 
+type State interface {
+	OnEnter()
+	OnUpdate(dt time.Duration)
+	OnLeave()
+}
+
+type EmptyState struct{}
+
+func (s *EmptyState) OnEnter()                  {}
+func (s *EmptyState) OnUpdate(dt time.Duration) {}
+func (s *EmptyState) OnLeave()                  {}
+
+type BasicState struct {
+	name        string
+	timeInState time.Duration
+}
+
+func (s *BasicState) OnEnter() {
+	fmt.Printf("Entering state %q\n", s.name)
+}
+func (s *BasicState) OnUpdate(dt time.Duration) {
+	s.timeInState += dt
+	fmt.Printf("In state %s for %v\n", s.name, s.timeInState)
+}
+func (s *BasicState) OnLeave() {
+	fmt.Printf("Leaving state %q\n", s.name)
+}
+func NewBasicState(name string) BasicState {
+	return BasicState{
+		name: name,
+	}
+}
+
+type FSM struct {
+	currentState State
+}
+
+func (fsm *FSM) Run(dt time.Duration) {
+	fsm.currentState.OnUpdate(dt)
+}
+func (fsm *FSM) ChangeState(newState State) {
+	fsm.currentState.OnLeave()
+	fsm.currentState = newState
+	fsm.currentState.OnEnter()
+}
+func NewFSM() *FSM {
+	return &FSM{currentState: &EmptyState{}}
+}
+
 //nolint:funlen,gocognit,gocyclo,maintidx // foo
 func main() {
+	// fsm := NewFSM()
+	// f := NewBasicState("foobar")
+	// a := NewBasicState("asdf")
+	//
+	// fsm.ChangeState(&f)
+	// fsm.Run(15 * time.Second)
+	// fsm.ChangeState(&a)
+	// fsm.Run(3 * time.Second)
+
+	/*
+		green := newShader(0, 255, 0)
+		for i := range 10
+			ground[i] := newGameobject().Mesh(Cube).Shader(green)
+	*/
+
 	runtime.LockOSThread()
 
 	// Init GLFW/OpenGL
@@ -137,14 +202,26 @@ func main() {
 
 	setGlobalGLState()
 
-	thing := makeThing()
+	// thing := makeThing()
+	// bevelCube := asdf()
+	s, err := shader.NewSolidShader(mgl32.Vec3{0.08, 0.35, 0.01})
+	if err != nil {
+		log.Fatal(err)
+	}
+	// s.SetColor(mgl32.Vec3{0.08, 0.35, 0.01})
+	land := make([][]*gameobject.SolidGameObject, 5)
+	for x := 0; x < 5; x++ {
+		land[x] = make([]*gameobject.SolidGameObject, 5)
+		for y := 0; y < 5; y++ {
+			land[x][y] = asdf(float32(x), float32(y), &s)
+		}
+	}
 
 	cube := makeCube()
 	grid := makeGrid()
 
 	// --------------------------------------------------------------------------------------------
 
-	// angle := 0.0
 	previousTime := float32(glfw.GetTime())
 
 	// Game loop
@@ -156,17 +233,22 @@ func main() {
 		dt := time - previousTime
 		previousTime = time
 
-		// angle += elapsed
-		// model = mgl32.HomogRotate3D(float32(angle), mgl32.Vec3{0, 1, 0})
-
 		// Update resources
 		camera.Update(dt)
 		cube.Update(dt)
-		thing.Update(dt)
+		// thing.Update(dt)
+		// bevelCube.Update(dt)
+		for x := 0; x < 5; x++ {
+			for y := 0; y < 5; y++ {
+				land[x][y].Update(dt)
+				land[x][y].Render(camera)
+			}
+		}
 
 		// Render resources
 		cube.Render(camera)
-		thing.Render2(camera)
+		// thing.Render2(camera)
+		// bevelCube.Render(camera)
 
 		// Draw grid last for some reason? Why is this?
 		grid.Render(camera)
@@ -177,6 +259,23 @@ func main() {
 	}
 }
 
+func asdf(x, y float32, s *shader.SolidShader) *gameobject.SolidGameObject {
+	wd, _ := os.Getwd()
+	thing, err := mesh.FromFile(wd + "/resources/meshes/bevel-cube.obj")
+	if err != nil {
+		log.Fatal("error making thing", err)
+	}
+
+	g := &gameobject.SolidGameObject{
+		Position: mgl32.Vec3{x * 2.0, 3.0, y * 2.0},
+		Scale:    mgl32.Vec3{1.0, 0.5, 1.0},
+		Mesh:     &thing,
+		Shader:   s,
+	}
+
+	return g
+}
+
 func makeThing() *gameobject.GameObject {
 	wd, _ := os.Getwd()
 	thing, err := mesh.FromFile(wd + "/resources/meshes/cube.obj")
@@ -184,15 +283,21 @@ func makeThing() *gameobject.GameObject {
 		log.Fatal("error making thing", err)
 	}
 
-	shader, err := shader.NewSolidShader()
+	shader, err := shader.NewGenericShader()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// texture, err := texture.New(wd + "/resources/textures/square.png")
+	// if err != nil {
+	// 	log.Fatal("error loading texture", err)
+	// }
+
 	obj := gameobject.NewBuilder().
 		Position(mgl32.Vec3{0.0, 3.0, 0.0}).
 		// Scale(mgl32.Vec3{0.05, 0.05, 0.05}).
-		Mesh(&thing).Shader(&shader).Build()
+		Mesh(&thing).Shader(&shader). //Texture(&texture).
+		Build()
 
 	return obj
 }
@@ -294,10 +399,18 @@ func initOpenGL() {
 
 func setGlobalGLState() {
 	gl.Enable(gl.DEBUG_OUTPUT)
+
+	// source uint32,
+	// gltype uint32,
+	// id uint32,
+	// severity uint32,
+	// length int32,
+	// message *uint8,
+	// userParam unsafe.Pointer
 	gl.DebugMessageCallback(func(
-		_ uint32, _ uint32, _ uint32, _ uint32, _ int32, message string, _ unsafe.Pointer,
+		source uint32, glType uint32, id uint32, severity uint32, length int32, message string, _ unsafe.Pointer,
 	) {
-		fmt.Printf("OPENGL MESSAGE: %v\n", message)
+		fmt.Printf("OPENGL MESSAGE: %v, %v, %v, %v, %v - %v\n", source, glType, id, severity, length, message)
 	}, nil)
 
 	gl.Enable(gl.DEPTH_TEST)

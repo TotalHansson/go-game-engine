@@ -18,6 +18,7 @@ type Shader struct {
 	projectionUniform int32
 	viewUniform       int32
 	modelUniform      int32
+	textureUniform    int32
 
 	projection mgl32.Mat4
 
@@ -25,28 +26,46 @@ type Shader struct {
 	fragmentShaderFilename string
 }
 
-func NewSolidShader() (Shader, error) {
+func NewGenericShader() (Shader, error) {
 	wd, _ := os.Getwd()
 	s := Shader{
-		vertexShaderFilename:   wd + "/resources/shaders/solid.vert",
-		fragmentShaderFilename: wd + "/resources/shaders/solid.frag",
+		vertexShaderFilename:   wd + "/resources/shaders/generic.vert",
+		fragmentShaderFilename: wd + "/resources/shaders/generic.frag",
 	}
 
 	if err := s.init(); err != nil {
 		return s, err
 	}
 
-	// gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 3*4, nil)
-	// gl.EnableVertexAttribArray(0)
+	// textureUniform := gl.GetUniformLocation(s.program, gl.Str("inTexture\x00"))
+	// gl.Uniform1i(textureUniform, 0)
 
-	// gl.BindFragDataLocation(s.program, 0, gl.Str("outputColor\x00"))
+	gl.BindFragDataLocation(s.program, 0, gl.Str("FragColor\x00"))
 
 	// vertAttrib := uint32(gl.GetAttribLocation(s.program, gl.Str("vert\x00")))
 	// gl.EnableVertexAttribArray(vertAttrib)
 	// gl.VertexAttribPointerWithOffset(vertAttrib, 3, gl.FLOAT, false, 5*4, 0)
 
+	// cubeTexCoordAttrib := uint32(gl.GetAttribLocation(s.program, gl.Str("vertTexCoord\x00")))
+	// gl.EnableVertexAttribArray(cubeTexCoordAttrib)
+	// gl.VertexAttribPointerWithOffset(cubeTexCoordAttrib, 2, gl.FLOAT, false, 5*4, 3*4)
+
 	return s, nil
 }
+
+// func NewSolidShader() (Shader, error) {
+// 	wd, _ := os.Getwd()
+// 	s := Shader{
+// 		vertexShaderFilename:   wd + "/resources/shaders/solid.vert",
+// 		fragmentShaderFilename: wd + "/resources/shaders/solid.frag",
+// 	}
+//
+// 	if err := s.init(); err != nil {
+// 		return s, err
+// 	}
+//
+// 	return s, nil
+// }
 
 func NewBasicShader() (Shader, error) {
 	wd, _ := os.Getwd()
@@ -240,6 +259,7 @@ func (s *Shader) getUniformLocations() {
 	s.projectionUniform = gl.GetUniformLocation(s.program, gl.Str("projection\x00"))
 	s.viewUniform = gl.GetUniformLocation(s.program, gl.Str("view\x00"))
 	s.modelUniform = gl.GetUniformLocation(s.program, gl.Str("model\x00"))
+	s.textureUniform = gl.GetUniformLocation(s.program, gl.Str("inTexture\x00"))
 }
 
 func UnbindProgram() {

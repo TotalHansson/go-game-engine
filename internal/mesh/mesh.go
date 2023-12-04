@@ -46,21 +46,45 @@ func FromFile(filepath string) (Mesh, error) {
 		return Mesh{}, err
 	}
 
-	pos, uvs, normals, indices := objloader.Load(filecontent)
+	pos, normals, uvs, indices := objloader.Load(filecontent)
 
 	vertexSize := 3
-	if len(uvs) > 0 {
-		vertexSize += 2
-	}
 	if len(normals) > 0 {
 		vertexSize += 3
 	}
+	if len(uvs) > 0 {
+		vertexSize += 2
+	}
 	vertexSize = vertexSize * sizeOfFloat32
 
-	vertexArray := make([]float32, 0, len(pos)+len(uvs)+len(normals))
+	vertexArray := make([]float32, 0, len(pos)+len(normals)+len(uvs))
+	// ip, in, iu := 0, 0, 0
+	// fmt.Printf("pos (%v) %+v\n", len(pos), pos)
+	// fmt.Printf("normals (%v) %+v\n", len(normals), normals)
+	// fmt.Printf("uvs (%v) %+v\n", len(uvs), uvs)
+	// for ip < len(pos) {
+	// 	fmt.Printf("ip %v\n", ip)
+	// 	vertexArray = append(vertexArray, pos[ip], pos[ip+1], pos[ip+2])
+	// 	if len(normals) > 0 {
+	// 		vertexArray = append(vertexArray, normals[in], normals[in+1], normals[in+2])
+	// 	}
+	// 	if len(uvs) > 0 {
+	// 		vertexArray = append(vertexArray, uvs[iu], uvs[iu+1])
+	// 	}
+	// 	ip += 3
+	// 	in += 3
+	// 	iu += 2
+	// 	fmt.Printf("appending pos (%v, %v, %v)\n", pos[ip], pos[ip+1], pos[ip+2])
+	// 	fmt.Printf("appending normals (%v, %v, %v)\n", normals[in], normals[in+1], normals[in+2])
+	// 	fmt.Printf("appending uvs (%v, %v)\n", uvs[iu], uvs[iu+1])
+	// }
 	vertexArray = append(vertexArray, pos...)
 	vertexArray = append(vertexArray, normals...)
 	vertexArray = append(vertexArray, uvs...)
+
+	// fmt.Printf("pos %v, normals %v, uvs %v\n", len(pos), len(normals), len(uvs))
+	// fmt.Printf("array: %+v\n", vertexArray)
+	// fmt.Printf("indices: %+v\n", indices)
 
 	var vao, vbo, ebo uint32
 	gl.GenVertexArrays(1, &vao)
@@ -83,14 +107,20 @@ func FromFile(filepath string) (Mesh, error) {
 	gl.EnableVertexAttribArray(0)
 
 	if len(normals) > 0 {
-		offset := len(pos) * sizeOfFloat32
-		gl.VertexAttribPointer(1, 3, gl.FLOAT, false, 3*sizeOfFloat32, unsafe.Pointer(&offset))
+		offset := len(pos)
+		gl.VertexAttribPointer(1, 3, gl.FLOAT, false, 3*sizeOfFloat32, unsafe.Pointer(&vertexArray[offset]))
 		gl.EnableVertexAttribArray(1)
 	}
 
 	if len(uvs) > 0 {
-		offset := (len(pos) + len(normals)) * sizeOfFloat32
-		gl.VertexAttribPointer(2, 2, gl.FLOAT, false, 2*sizeOfFloat32, unsafe.Pointer(&offset))
+		offset := (len(pos) + len(normals))
+		// offset := 3
+		// if len(normals) > 0 {
+		// 	offset += 3
+		// }
+		// offset *= sizeOfFloat32
+		// fmt.Printf("offset to UV: %v (%v*%v)\n", offset, len(pos)+len(normals), sizeOfFloat32)
+		gl.VertexAttribPointer(2, 2, gl.FLOAT, false, 2*sizeOfFloat32, unsafe.Pointer(&vertexArray[offset]))
 		gl.EnableVertexAttribArray(2)
 	}
 

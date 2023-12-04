@@ -4,14 +4,13 @@ layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec2 inTexCoord;
 
 out vec3 ourColor;
-out vec2 outTexCoord;
+out vec2 ourTexCoord;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
 void main() {
-    gl_Position = vec4(inPos, 1.0);
-    ourColor = inColor;
-    outTexCoord = inTexCoord;
+    gl_Position = projection * view * model * vec4(inPos, 1.0);
+    ourTexCoord = inTexCoord;
 }

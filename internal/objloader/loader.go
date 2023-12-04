@@ -17,7 +17,7 @@ func ReadFile(file string) ([]string, error) {
 	return strings.Split(str, "\n"), nil
 }
 
-func Load(filecontent []string) (verts []float32, uvs []float32, normals []float32, indices []uint32) {
+func Load(filecontent []string) (pos []float32, normals []float32, uvs []float32, indices []uint32) {
 	for i, line := range filecontent {
 		if len(line) < 2 {
 			continue
@@ -26,39 +26,44 @@ func Load(filecontent []string) (verts []float32, uvs []float32, normals []float
 		leading := line[0:2]
 		switch leading {
 		case "v ":
-			vert, err := parseVert(line)
+			parsedPos, err := parseVert(line)
 			if err != nil {
 				fmt.Printf("error parsing float on line %d: %v\n", i, err)
 			}
-			verts = append(verts, vert...)
+			pos = append(pos, parsedPos...)
 
 		case "vt":
-			uv, err := parseUV(line)
+			parsedUv, err := parseUV(line)
 			if err != nil {
 				fmt.Printf("error parsing UV on line %d: %v\n", i, err)
 			}
-			uvs = append(uvs, uv...)
+			uvs = append(uvs, parsedUv...)
 
 		case "vn":
-			normals, err := parseVert(line)
+			parsedNormals, err := parseVert(line)
 			if err != nil {
 				fmt.Printf("error parsing normal on line %d: %v\n", i, err)
 			}
-			normals = append(normals, normals...)
+			normals = append(normals, parsedNormals...)
 
 		case "f ":
-			vertIndices, _, _, err := parseFace(line)
+			// posIndices, normalIndices, uvIndices, err := parseFace(line)
+			posIndices, _, _, err := parseFace(line)
 			if err != nil {
 				fmt.Printf("error parsing float on line %d: %v\n", i, err)
 			}
-			indices = append(indices, vertIndices...)
+			indices = append(indices, posIndices...)
+			// indices = append(indices, normalIndices...)
+			// indices = append(indices, uvIndices...)
 		}
 	}
-	return verts, uvs, normals, indices
+	// fmt.Printf("normals %v\n", normals)
+	return pos, normals, uvs, indices
 }
 
 func parseVert(line string) ([]float32, error) {
 	parts := strings.Fields(line)
+	// fmt.Printf("parts: %+v\n", parts)
 	xStr, yStr, zStr := parts[1], parts[2], parts[3]
 	x, err := strconv.ParseFloat(xStr, 32)
 	if err != nil {
@@ -72,6 +77,7 @@ func parseVert(line string) ([]float32, error) {
 	if err != nil {
 		return []float32{}, err
 	}
+	// fmt.Printf("x %v, y %v, z %v\n", x, y, z)
 	return []float32{float32(x), float32(y), float32(z)}, nil
 }
 
@@ -96,18 +102,17 @@ func parseUV(line string) ([]float32, error) {
 }
 
 func parseFace(line string) (
-	vertIndices []uint32, uvIndices []uint32, normalIndices []uint32, err error,
+	vertIndices []uint32, normalIndices []uint32, uvIndices []uint32, err error,
 ) {
 	lineParts := strings.Fields(line)
 	// Possible formats: x, x/y, x/y/z, x//z
 	// Can occur 3 to N times per line
 	for i := 1; i < len(lineParts); i++ {
-		// posUvNormal := lineParts[i]
 		faceIndices := strings.Split(lineParts[i], "/")
 		if len(faceIndices) > 0 {
 			pos, err := strconv.ParseInt(faceIndices[0], 10, 32)
 			if err != nil {
-				return vertIndices, uvIndices, normalIndices, err
+				return vertIndices, normalIndices, uvIndices, err
 			}
 			vertIndices = append(vertIndices, uint32(pos)-1)
 		}
@@ -115,7 +120,7 @@ func parseFace(line string) (
 		if len(faceIndices) > 1 && faceIndices[1] != "" {
 			uv, err := strconv.ParseInt(faceIndices[1], 10, 32)
 			if err != nil {
-				return vertIndices, uvIndices, normalIndices, err
+				return vertIndices, normalIndices, uvIndices, err
 			}
 			uvIndices = append(uvIndices, uint32(uv)-1)
 		}
@@ -123,17 +128,11 @@ func parseFace(line string) (
 		if len(faceIndices) > 2 {
 			normal, err := strconv.ParseInt(faceIndices[2], 10, 32)
 			if err != nil {
-				return vertIndices, uvIndices, normalIndices, err
+				return vertIndices, normalIndices, uvIndices, err
 			}
 			normalIndices = append(normalIndices, uint32(normal)-1)
 		}
-
-		// face := strings.Split(posUvNormal, "/")
-		// pos, err := strconv.ParseInt(face[0], 10, 32)
-		// if err != nil {
-		// 	return vertIndices, uvIndices, normalIndices, err
-		// }
-		// vertIndices = append(vertIndices, uint32(pos)-1)
 	}
-	return vertIndices, uvIndices, normalIndices, nil
+
+	return vertIndices, normalIndices, uvIndices, nil
 }
