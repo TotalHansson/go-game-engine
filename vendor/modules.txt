@@ -1,6 +1,9 @@
 # github.com/chewxy/math32 v1.10.1
 ## explicit; go 1.13
 github.com/chewxy/math32
+# github.com/davecgh/go-spew v1.1.1
+## explicit
+github.com/davecgh/go-spew/spew
 # github.com/go-gl/gl v0.0.0-20211025173605-bda47ffaa784
 ## explicit; go 1.12
 github.com/go-gl/gl/v4.6-core/gl
@@ -18,6 +21,15 @@ github.com/go-gl/glfw/v3.2/glfw/glfw/src
 # github.com/go-gl/mathgl v1.0.0
 ## explicit; go 1.11
 github.com/go-gl/mathgl/mgl32
+# github.com/pmezard/go-difflib v1.0.0
+## explicit
+github.com/pmezard/go-difflib/difflib
+# github.com/stretchr/testify v1.8.4
+## explicit; go 1.20
+github.com/stretchr/testify/assert
 # golang.org/x/image v0.0.0-20210216034530-4410531fe030
 ## explicit; go 1.12
 golang.org/x/image/math/f32
+# gopkg.in/yaml.v3 v3.0.1
+## explicit
+gopkg.in/yaml.v3

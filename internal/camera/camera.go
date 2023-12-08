@@ -33,6 +33,7 @@ func NewCamera(pos mgl32.Vec3, windowWidth, windowHeight int) *Camera {
 		speed:       3.0,
 		sensitivity: 0.075,
 		yaw:         -90.0,
+		pitch:       -10.0,
 	}
 
 	c.projection = mgl32.Perspective(mgl32.DegToRad(45.0), float32(windowWidth)/float32(windowHeight), 0.1, 1000.0)

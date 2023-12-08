@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 func ReadFile(file string) ([]string, error) {
@@ -17,7 +19,9 @@ func ReadFile(file string) ([]string, error) {
 	return strings.Split(str, "\n"), nil
 }
 
-func Load(filecontent []string) (pos []float32, normals []float32, uvs []float32, indices []uint32) {
+func Load(filecontent []string) (vertexArray []float32, hasUV, hasNormals bool) {
+	vertexArray = []float32{}
+	pos, uvs, normals := []mgl32.Vec3{}, []mgl32.Vec2{}, []mgl32.Vec3{}
 	for i, line := range filecontent {
 		if len(line) < 2 {
 			continue
@@ -28,82 +32,88 @@ func Load(filecontent []string) (pos []float32, normals []float32, uvs []float32
 		case "v ":
 			parsedPos, err := parseVert(line)
 			if err != nil {
-				fmt.Printf("error parsing float on line %d: %v\n", i, err)
+				fmt.Printf("error parsing pos on line %d: %v\n", i, err)
 			}
-			pos = append(pos, parsedPos...)
+			pos = append(pos, parsedPos)
 
 		case "vt":
 			parsedUv, err := parseUV(line)
 			if err != nil {
 				fmt.Printf("error parsing UV on line %d: %v\n", i, err)
 			}
-			uvs = append(uvs, parsedUv...)
+			uvs = append(uvs, parsedUv)
 
 		case "vn":
 			parsedNormals, err := parseVert(line)
 			if err != nil {
 				fmt.Printf("error parsing normal on line %d: %v\n", i, err)
 			}
-			normals = append(normals, parsedNormals...)
+			normals = append(normals, parsedNormals)
 
 		case "f ":
-			// posIndices, normalIndices, uvIndices, err := parseFace(line)
-			posIndices, _, _, err := parseFace(line)
+			posIndices, uvIndices, normIndices, err := parseFace(line)
 			if err != nil {
 				fmt.Printf("error parsing float on line %d: %v\n", i, err)
 			}
-			indices = append(indices, posIndices...)
-			// indices = append(indices, normalIndices...)
-			// indices = append(indices, uvIndices...)
+			for j := 0; j < len(posIndices); j++ {
+				x, y, z := pos[posIndices[j]].Elem()
+				vertexArray = append(vertexArray, x, y, z)
+				if len(uvs) > 0 {
+					u, v := uvs[uvIndices[j]].Elem()
+					vertexArray = append(vertexArray, u, v)
+				}
+				if len(normals) > 0 {
+					x, y, z := normals[normIndices[j]].Elem()
+					vertexArray = append(vertexArray, x, y, z)
+				}
+			}
 		}
 	}
-	// fmt.Printf("normals %v\n", normals)
-	return pos, normals, uvs, indices
+	if len(uvs) > 0 {
+		hasUV = true
+	}
+	if len(normals) > 0 {
+		hasNormals = true
+	}
+	return vertexArray, hasUV, hasNormals
 }
 
-func parseVert(line string) ([]float32, error) {
+func parseVert(line string) (mgl32.Vec3, error) {
 	parts := strings.Fields(line)
-	// fmt.Printf("parts: %+v\n", parts)
 	xStr, yStr, zStr := parts[1], parts[2], parts[3]
 	x, err := strconv.ParseFloat(xStr, 32)
 	if err != nil {
-		return []float32{}, err
+		return mgl32.Vec3{}, err
 	}
 	y, err := strconv.ParseFloat(yStr, 32)
 	if err != nil {
-		return []float32{}, err
+		return mgl32.Vec3{}, err
 	}
 	z, err := strconv.ParseFloat(zStr, 32)
 	if err != nil {
-		return []float32{}, err
+		return mgl32.Vec3{}, err
 	}
-	// fmt.Printf("x %v, y %v, z %v\n", x, y, z)
-	return []float32{float32(x), float32(y), float32(z)}, nil
+	return mgl32.Vec3{float32(x), float32(y), float32(z)}, nil
 }
 
-// func parseNormal(line string) ([]uint32, error) {
-// 	parts := strings.Fields(line)
-//
-// 	return []uint32{}, nil
-// }
-
-func parseUV(line string) ([]float32, error) {
+func parseUV(line string) (mgl32.Vec2, error) {
 	parts := strings.Fields(line)
 	uStr, vStr := parts[1], parts[2]
 	u, err := strconv.ParseFloat(uStr, 32)
 	if err != nil {
-		return []float32{}, err
+		return mgl32.Vec2{}, err
 	}
 	v, err := strconv.ParseFloat(vStr, 32)
 	if err != nil {
-		return []float32{}, err
+		return mgl32.Vec2{}, err
 	}
-	return []float32{float32(u), float32(v)}, nil
+	return mgl32.Vec2{float32(u), float32(v)}, nil
 }
 
 func parseFace(line string) (
-	vertIndices []uint32, normalIndices []uint32, uvIndices []uint32, err error,
+	vertIndices []uint32, uvIndices []uint32, normalIndices []uint32, err error,
 ) {
+	vertIndices, uvIndices, normalIndices = []uint32{}, []uint32{}, []uint32{}
 	lineParts := strings.Fields(line)
 	// Possible formats: x, x/y, x/y/z, x//z
 	// Can occur 3 to N times per line
@@ -134,5 +144,5 @@ func parseFace(line string) (
 		}
 	}
 
-	return vertIndices, normalIndices, uvIndices, nil
+	return vertIndices, uvIndices, normalIndices, nil
 }

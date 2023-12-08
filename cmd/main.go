@@ -102,7 +102,7 @@ func main() {
 	defer clean()
 	initOpenGL()
 
-	camera := camera.NewCamera(mgl32.Vec3{0.0, 2.0, 10.0}, windowWidth, windowHeight)
+	camera := camera.NewCamera(mgl32.Vec3{4.0, 4.0, 10.0}, windowWidth, windowHeight)
 
 	keyCallback := func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 		switch key {
@@ -202,18 +202,33 @@ func main() {
 
 	setGlobalGLState()
 
-	// thing := makeThing()
-	// bevelCube := asdf()
-	s, err := shader.NewSolidShader(mgl32.Vec3{0.08, 0.35, 0.01})
+	lampPos := mgl32.Vec3{-10.0, 10.0, -10.0}
+	lampColor := mgl32.Vec3{1.0, 1.0, 1.0}
+
+	s, err := shader.NewSolidShader(mgl32.Vec3{0.2, 0.4, 0.2})
 	if err != nil {
 		log.Fatal(err)
 	}
-	// s.SetColor(mgl32.Vec3{0.08, 0.35, 0.01})
-	land := make([][]*gameobject.SolidGameObject, 5)
-	for x := 0; x < 5; x++ {
-		land[x] = make([]*gameobject.SolidGameObject, 5)
-		for y := 0; y < 5; y++ {
-			land[x][y] = asdf(float32(x), float32(y), &s)
+	s.SetLightPos(lampPos)
+	s.SetLightColor(lampColor)
+
+	wd, _ := os.Getwd()
+	bevelCube, err := mesh.FromFile(wd + "/resources/meshes/bevel-cube2.obj")
+	if err != nil {
+		log.Fatal("error making thing", err)
+	}
+
+	sizeX, sizeZ := 50, 50
+	land := make([][]*gameobject.SolidGameObject, sizeX)
+	for x := 0; x < sizeX; x++ {
+		land[x] = make([]*gameobject.SolidGameObject, sizeZ)
+		for z := 0; z < sizeZ; z++ {
+			land[x][z] = &gameobject.SolidGameObject{
+				Position: mgl32.Vec3{float32(x) * 2.0, 2.0, float32(z) * -2.0},
+				Scale:    mgl32.Vec3{1.0, 0.5, 1.0},
+				Mesh:     &bevelCube,
+				Shader:   &s,
+			}
 		}
 	}
 
@@ -236,19 +251,15 @@ func main() {
 		// Update resources
 		camera.Update(dt)
 		cube.Update(dt)
-		// thing.Update(dt)
-		// bevelCube.Update(dt)
-		for x := 0; x < 5; x++ {
-			for y := 0; y < 5; y++ {
-				land[x][y].Update(dt)
-				land[x][y].Render(camera)
+		for x := 0; x < sizeX; x++ {
+			for z := 0; z < sizeZ; z++ {
+				land[x][z].Update(dt)
+				land[x][z].Render(camera)
 			}
 		}
 
 		// Render resources
 		cube.Render(camera)
-		// thing.Render2(camera)
-		// bevelCube.Render(camera)
 
 		// Draw grid last for some reason? Why is this?
 		grid.Render(camera)
@@ -257,23 +268,6 @@ func main() {
 		window.SwapBuffers()
 		glfw.PollEvents()
 	}
-}
-
-func asdf(x, y float32, s *shader.SolidShader) *gameobject.SolidGameObject {
-	wd, _ := os.Getwd()
-	thing, err := mesh.FromFile(wd + "/resources/meshes/bevel-cube.obj")
-	if err != nil {
-		log.Fatal("error making thing", err)
-	}
-
-	g := &gameobject.SolidGameObject{
-		Position: mgl32.Vec3{x * 2.0, 3.0, y * 2.0},
-		Scale:    mgl32.Vec3{1.0, 0.5, 1.0},
-		Mesh:     &thing,
-		Shader:   s,
-	}
-
-	return g
 }
 
 func makeThing() *gameobject.GameObject {

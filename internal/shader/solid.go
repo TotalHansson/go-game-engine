@@ -19,6 +19,9 @@ type SolidShader struct {
 	modelUniform      int32
 	colorUniform      int32
 
+	lightPosUniform   int32
+	lightColorUniform int32
+
 	projection mgl32.Mat4
 
 	vertexShaderFilename   string
@@ -38,7 +41,8 @@ func NewSolidShader(color mgl32.Vec3) (SolidShader, error) {
 
 	gl.BindFragDataLocation(s.program, 0, gl.Str("FragColor\x00"))
 
-	s.SetColor(color)
+	s.SetObjColor(color)
+	s.SetLightColor(mgl32.Vec3{1.0, 1.0, 1.0})
 
 	return s, nil
 }
@@ -59,8 +63,14 @@ func (s *SolidShader) SetModel(model mgl32.Mat4) {
 	gl.UniformMatrix4fv(s.modelUniform, 1, false, &model[0])
 }
 
-func (s *SolidShader) SetColor(color mgl32.Vec3) {
+func (s *SolidShader) SetObjColor(color mgl32.Vec3) {
 	gl.Uniform3fv(s.colorUniform, 1, &color[0])
+}
+func (s *SolidShader) SetLightPos(pos mgl32.Vec3) {
+	gl.Uniform3fv(s.lightPosUniform, 1, &pos[0])
+}
+func (s *SolidShader) SetLightColor(color mgl32.Vec3) {
+	gl.Uniform3fv(s.lightColorUniform, 1, &color[0])
 }
 
 func (s *SolidShader) init() error {
@@ -104,7 +114,9 @@ func (s *SolidShader) getUniformLocations() {
 	s.projectionUniform = gl.GetUniformLocation(s.program, gl.Str("projection\x00"))
 	s.viewUniform = gl.GetUniformLocation(s.program, gl.Str("view\x00"))
 	s.modelUniform = gl.GetUniformLocation(s.program, gl.Str("model\x00"))
-	s.colorUniform = gl.GetUniformLocation(s.program, gl.Str("color\x00"))
+	s.colorUniform = gl.GetUniformLocation(s.program, gl.Str("objColor\x00"))
+	s.lightPosUniform = gl.GetUniformLocation(s.program, gl.Str("lightPos\x00"))
+	s.lightColorUniform = gl.GetUniformLocation(s.program, gl.Str("lightColor\x00"))
 }
 
 // loadShader reads and compiles a shader from file.
