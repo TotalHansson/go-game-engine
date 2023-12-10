@@ -115,6 +115,14 @@ func (c *Camera) Projection() mgl32.Mat4 {
 	return c.projection
 }
 
+func (c *Camera) Position() mgl32.Vec3 {
+	return c.position
+}
+
+func (c *Camera) Forward() mgl32.Vec3 {
+	return c.front
+}
+
 func (c *Camera) MoveX(x float32) {
 	c.movement[0] += x
 }

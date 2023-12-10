@@ -201,6 +201,25 @@ func main() {
 	window.SetInputMode(glfw.CursorMode, glfw.CursorDisabled)
 
 	setGlobalGLState()
+	wd, _ := os.Getwd()
+
+	///////////////////////////
+	xyzShader, err := shader.NewXYZGizmoShader()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	xyzMesh, err := mesh.FromFile(wd + "/resources/meshes/xyz-gizmo.obj")
+	if err != nil {
+		log.Fatal("error making thing", err)
+	}
+	xyz := &gameobject.XYZGizmo{
+		Position: mgl32.Vec3{0.0, 0.0, -1.0},
+		Scale:    mgl32.Vec3{1.0, 1.0, 1.0},
+		Mesh:     &xyzMesh,
+		Shader:   &xyzShader,
+	}
+	///////////////////////////
 
 	lampPos := mgl32.Vec3{-10.0, 10.0, -10.0}
 	lampColor := mgl32.Vec3{1.0, 1.0, 1.0}
@@ -212,13 +231,13 @@ func main() {
 	s.SetLightPos(lampPos)
 	s.SetLightColor(lampColor)
 
-	wd, _ := os.Getwd()
+	// wd, _ := os.Getwd()
 	bevelCube, err := mesh.FromFile(wd + "/resources/meshes/bevel-cube2.obj")
 	if err != nil {
 		log.Fatal("error making thing", err)
 	}
 
-	sizeX, sizeZ := 50, 50
+	sizeX, sizeZ := 10, 10
 	land := make([][]*gameobject.SolidGameObject, sizeX)
 	for x := 0; x < sizeX; x++ {
 		land[x] = make([]*gameobject.SolidGameObject, sizeZ)
@@ -263,6 +282,12 @@ func main() {
 
 		// Draw grid last for some reason? Why is this?
 		grid.Render(camera)
+
+		/////
+
+		gl.Clear(gl.DEPTH_BUFFER_BIT)
+		xyz.Update(dt)
+		xyz.Render(camera)
 
 		// Maintenance
 		window.SwapBuffers()
