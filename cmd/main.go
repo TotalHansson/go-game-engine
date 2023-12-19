@@ -261,6 +261,7 @@ func main() {
 	// Game loop
 	for !window.ShouldClose() {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+		gl.Viewport(0, 0, windowWidth, windowHeight)
 
 		// Calculate time since last frame
 		time := float32(glfw.GetTime())
@@ -437,4 +438,5 @@ func setGlobalGLState() {
 	gl.DepthFunc(gl.LESS)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	gl.ClearColor(0.2, 0.2, 0.2, 1.0)
+	gl.Viewport(0, 0, windowWidth, windowHeight)
 }

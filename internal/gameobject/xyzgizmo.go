@@ -17,34 +17,22 @@ type XYZGizmo struct {
 	Mesh   *mesh.Mesh
 }
 
-func (g *XYZGizmo) Update(_ float32) {
-	// if g.Shader != nil {
-	// 	g.Shader.UseProgram()
-	// 	modelMat := mgl32.Ident4()
-	// 	modelMat = modelMat.Mul4(mgl32.Translate3D(g.Position[0], g.Position[1], g.Position[2]))
-	// 	modelMat = modelMat.Mul4(mgl32.Scale3D(g.Scale[0], g.Scale[1], g.Scale[2]))
-	// 	modelMat = modelMat.Mul4(mgl32.HomogRotate3DX(g.Rotation[0]))
-	// 	modelMat = modelMat.Mul4(mgl32.HomogRotate3DY(g.Rotation[1]))
-	// 	modelMat = modelMat.Mul4(mgl32.HomogRotate3DZ(g.Rotation[2]))
-	//
-	// 	g.Shader.SetModel(modelMat)
-	// }
-}
+func (g *XYZGizmo) Update(_ float32) {}
 
 func (g *XYZGizmo) Render(c *camera.Camera) {
 	if g.Shader != nil {
 		g.Shader.UseProgram()
 
-		////////
 		camPos := c.Position()
 		camForward := c.Forward()
 		camUp := mgl32.Vec3{0.0, 1.0, 0.0}
 		camRight := camForward.Cross(camUp).Normalize()
 		camUp = camRight.Cross(camForward).Normalize()
 
-		newPos := camPos.Add(camForward)
-
-		newPos = newPos.Add(camRight.Mul(-3.1))
+		// Position the gizmo at the camera, and move it forward in the direction the camera is looking
+		newPos := camPos.Add(camForward.Mul(5.0))
+		// Move down and left relative to the cameras view direction
+		newPos = newPos.Add(camRight.Mul(-3.0))
 		newPos = newPos.Add(camUp.Mul(-1.5))
 
 		modelMat := mgl32.Ident4()
@@ -52,12 +40,8 @@ func (g *XYZGizmo) Render(c *camera.Camera) {
 		modelMat = modelMat.Mul4(mgl32.Scale3D(0.5, 0.5, 0.5))
 
 		g.Shader.SetModel(modelMat)
-		////////
-
-		// view := mgl32.LookAtV(camPos, camForward, camUp)
 		g.Shader.SetView(c.View())
-		projection := mgl32.Ortho(-3.6, 3.6, -2.0, 2.0, 0, 10)
-		g.Shader.SetProjection(projection)
+		g.Shader.SetProjection(c.Projection())
 
 		if g.Mesh != nil {
 			g.Mesh.DrawNonIndex()
