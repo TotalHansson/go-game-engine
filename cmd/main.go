@@ -221,7 +221,7 @@ func main() {
 	}
 	///////////////////////////
 
-	lampPos := mgl32.Vec3{-10.0, 10.0, -10.0}
+	lampPos := mgl32.Vec3{10.0, 10.0, -10.0}
 	lampColor := mgl32.Vec3{1.0, 1.0, 1.0}
 
 	s, err := shader.NewSolidShader(mgl32.Vec3{0.2, 0.4, 0.2})

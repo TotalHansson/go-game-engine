@@ -21,6 +21,7 @@ type SolidShader struct {
 
 	lightPosUniform   int32
 	lightColorUniform int32
+	viewPosUniform    int32
 
 	projection mgl32.Mat4
 
@@ -72,6 +73,9 @@ func (s *SolidShader) SetLightPos(pos mgl32.Vec3) {
 func (s *SolidShader) SetLightColor(color mgl32.Vec3) {
 	gl.Uniform3fv(s.lightColorUniform, 1, &color[0])
 }
+func (s *SolidShader) SetViewPos(pos mgl32.Vec3) {
+	gl.Uniform3fv(s.viewPosUniform, 1, &pos[0])
+}
 
 func (s *SolidShader) init() error {
 	if err := gl.Init(); err != nil {
@@ -117,6 +121,7 @@ func (s *SolidShader) getUniformLocations() {
 	s.colorUniform = gl.GetUniformLocation(s.program, gl.Str("objColor\x00"))
 	s.lightPosUniform = gl.GetUniformLocation(s.program, gl.Str("lightPos\x00"))
 	s.lightColorUniform = gl.GetUniformLocation(s.program, gl.Str("lightColor\x00"))
+	s.viewPosUniform = gl.GetUniformLocation(s.program, gl.Str("viewPos\x00"))
 }
 
 // loadShader reads and compiles a shader from file.

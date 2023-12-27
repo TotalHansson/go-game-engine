@@ -36,6 +36,7 @@ func (g *SolidGameObject) Render(c *camera.Camera) {
 		g.Shader.UseProgram()
 		g.Shader.SetView(c.View())
 		g.Shader.SetProjection(c.Projection())
+		g.Shader.SetViewPos(c.Position())
 
 		if g.Mesh != nil {
 			g.Mesh.DrawNonIndex()
