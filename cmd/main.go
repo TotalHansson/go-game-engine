@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"runtime"
-	"time"
 	"unsafe"
 
 	"game-engine/rts/internal/camera"
@@ -31,25 +31,25 @@ var (
 
 type State interface {
 	OnEnter()
-	OnUpdate(dt time.Duration)
+	OnUpdate(dt float32)
 	OnLeave()
 }
 
 type EmptyState struct{}
 
-func (s *EmptyState) OnEnter()                  {}
-func (s *EmptyState) OnUpdate(dt time.Duration) {}
-func (s *EmptyState) OnLeave()                  {}
+func (s *EmptyState) OnEnter()            {}
+func (s *EmptyState) OnUpdate(dt float32) {}
+func (s *EmptyState) OnLeave()            {}
 
 type BasicState struct {
 	name        string
-	timeInState time.Duration
+	timeInState float32
 }
 
 func (s *BasicState) OnEnter() {
 	fmt.Printf("Entering state %q\n", s.name)
 }
-func (s *BasicState) OnUpdate(dt time.Duration) {
+func (s *BasicState) OnUpdate(dt float32) {
 	s.timeInState += dt
 	fmt.Printf("In state %s for %v\n", s.name, s.timeInState)
 }
@@ -62,11 +62,130 @@ func NewBasicState(name string) BasicState {
 	}
 }
 
+type Worker struct {
+	fsm              FSM
+	idleState        WorkerIdleState
+	choppingState    WorkerChoppingState
+	treePickingState WorkerTreePickingState
+	walkState        WorkerWalkState
+
+	trees         *[]*gameobject.SolidGameObject
+	gameObject    *gameobject.SolidGameObject
+	currentTarget *gameobject.SolidGameObject
+}
+
+func (w *Worker) Idle() {
+	w.fsm.ChangeState(&w.idleState)
+}
+func (w *Worker) Walk() {
+	w.fsm.ChangeState(&w.walkState)
+}
+func (w *Worker) Chop() {
+	w.fsm.ChangeState(&w.choppingState)
+}
+func (w *Worker) PickTree() {
+	w.fsm.ChangeState(&w.treePickingState)
+}
+
+type WorkerIdleState struct {
+	worker             *Worker
+	timeSinceLastPrint float32
+}
+
+func (s *WorkerIdleState) OnUpdate(dt float32) {
+	s.timeSinceLastPrint += dt
+	if s.timeSinceLastPrint > 1.0 {
+		s.timeSinceLastPrint = 0.0
+		fmt.Printf("Worker is chillin\n")
+	}
+}
+func (s *WorkerIdleState) OnEnter() {
+	s.timeSinceLastPrint = 0.0
+	fmt.Printf("Entering idle state\n")
+}
+func (s *WorkerIdleState) OnLeave() { fmt.Printf("Leaving idle state\n") }
+
+var treeChoppingDuration float32 = 10.0
+
+type WorkerChoppingState struct {
+	worker             *Worker
+	timeSinceLastPrint float32
+	timeSpentChopping  float32
+}
+
+func (s *WorkerChoppingState) OnUpdate(dt float32) {
+	s.timeSinceLastPrint += dt
+	if s.timeSinceLastPrint > 1.0 {
+		s.timeSinceLastPrint = 0
+		fmt.Printf("Chopping tree: %.1f/%.1f\n", s.timeSpentChopping, treeChoppingDuration)
+	}
+
+	s.timeSpentChopping += dt
+	if s.timeSpentChopping >= treeChoppingDuration {
+		fmt.Printf("Timber!\n")
+		*s.worker.trees, _ = chopTree(s.worker.currentTarget, *s.worker.trees)
+		s.worker.PickTree()
+	}
+}
+func (s *WorkerChoppingState) OnEnter() {
+	s.timeSpentChopping = 0
+	s.timeSinceLastPrint = 0
+	fmt.Printf("Entering chopping state\n")
+}
+func (s *WorkerChoppingState) OnLeave() { fmt.Printf("Leaving chopping state\n") }
+
+type WorkerTreePickingState struct {
+	worker *Worker
+}
+
+func (s *WorkerTreePickingState) OnUpdate(dt float32) {
+	targetIndex, exists := findClosestTree(*s.worker.trees, s.worker.gameObject)
+	if !exists {
+		fmt.Printf("No more trees\n")
+		s.worker.Idle()
+		return
+	}
+	trees := *s.worker.trees
+	s.worker.currentTarget = trees[targetIndex]
+	s.worker.Walk()
+}
+func (s *WorkerTreePickingState) OnEnter() { fmt.Printf("Entering tree picking state\n") }
+func (s *WorkerTreePickingState) OnLeave() { fmt.Printf("Leaving tree picking state\n") }
+
+type WorkerWalkState struct {
+	worker             *Worker
+	timeSinceLastPrint float32
+}
+
+func (s *WorkerWalkState) OnUpdate(dt float32) {
+	target := s.worker.currentTarget
+	worker := s.worker.gameObject
+	moveDir := target.Position.Sub(worker.Position)
+	moveDir[1] = 0.0 // Don't touch the height
+	moveDir = moveDir.Normalize()
+	worker.Position = worker.Position.Add(moveDir.Mul(dt))
+	dist := worker.Position.Sub(target.Position)
+	dist[1] = 0.0
+	remainingDistance := dist.Len()
+	if remainingDistance < 0.05 {
+		s.worker.Chop()
+		return
+	}
+
+	s.timeSinceLastPrint += dt
+	if s.timeSinceLastPrint > 1.0 {
+		s.timeSinceLastPrint = 0.0
+		fmt.Printf("Walking towards tree %v, remaining distance: %v\n", s.worker.currentTarget, remainingDistance)
+	}
+}
+func (s *WorkerWalkState) OnEnter() { fmt.Printf("Entering walking state\n") }
+func (s *WorkerWalkState) OnLeave() { fmt.Printf("Leaving walking state\n") }
+
 type FSM struct {
 	currentState State
 }
 
-func (fsm *FSM) Run(dt time.Duration) {
+func (fsm *FSM) Run(dt float32) {
 	fsm.currentState.OnUpdate(dt)
 }
 func (fsm *FSM) ChangeState(newState State) {
@@ -80,21 +199,6 @@ func NewFSM() *FSM {
 
 //nolint:funlen,gocognit,gocyclo,maintidx // foo
 func main() {
-	// fsm := NewFSM()
-	// f := NewBasicState("foobar")
-	// a := NewBasicState("asdf")
-	//
-	// fsm.ChangeState(&f)
-	// fsm.Run(15 * time.Second)
-	// fsm.ChangeState(&a)
-	// fsm.Run(3 * time.Second)
-
-	/*
-		green := newShader(0, 255, 0)
-		for i := range 10
-			ground[i] := newGameobject().Mesh(Cube).Shader(green)
-	*/
-
 	runtime.LockOSThread()
 
 	// Init GLFW/OpenGL
@@ -203,12 +307,11 @@ func main() {
 	setGlobalGLState()
 	wd, _ := os.Getwd()
 
-	///////////////////////////
+	///////////// XYZ Gizmo //////////////
 	xyzShader, err := shader.NewXYZGizmoShader()
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	xyzMesh, err := mesh.FromFile(wd + "/resources/meshes/xyz-gizmo.obj")
 	if err != nil {
 		log.Fatal("error making thing", err)
@@ -219,7 +322,8 @@ func main() {
 		Mesh:     &xyzMesh,
 		Shader:   &xyzShader,
 	}
-	///////////////////////////
+
+	//////////// Light ///////////////
 
 	lampPos := mgl32.Vec3{10.0, 10.0, -10.0}
 	lampColor := mgl32.Vec3{1.0, 1.0, 1.0}
@@ -231,7 +335,8 @@ func main() {
 	s.SetLightPos(lampPos)
 	s.SetLightColor(lampColor)
 
-	// wd, _ := os.Getwd()
+	//////////// Ground //////////////
+
 	bevelCube, err := mesh.FromFile(wd + "/resources/meshes/bevel-cube2.obj")
 	if err != nil {
 		log.Fatal("error making thing", err)
@@ -250,6 +355,65 @@ func main() {
 			}
 		}
 	}
+
+	/////////// Trees ///////////////
+
+	treeShader, err := shader.NewSolidShader(mgl32.Vec3{0.0, 1.0, 0.0})
+	if err != nil {
+		log.Fatal(err)
+	}
+	s.SetLightPos(lampPos)
+	s.SetLightColor(lampColor)
+
+	treeMesh, err := mesh.FromFile(wd + "/resources/meshes/cylinder.obj")
+	if err != nil {
+		log.Fatal("error loading tree mesh", err)
+	}
+	totalNrTrees := 500
+	trees := make([]*gameobject.SolidGameObject, totalNrTrees)
+	for i := 0; i < totalNrTrees; i++ {
+		x := rand.Float32()*9.5 - 0.25
+		z := rand.Float32()*9.5 - 0.25
+		trees[i] = &gameobject.SolidGameObject{
+			Position: mgl32.Vec3{x * 2.0, 3.0, z * -2.0},
+			Scale:    mgl32.Vec3{0.1, 0.5, 0.1},
+			Mesh:     &treeMesh,
+			Shader:   &treeShader,
+		}
+	}
+
+	/////////// Worker ///////////////
+
+	workerShader, err := shader.NewSolidShader(mgl32.Vec3{0.75, 0.75, 0.75})
+	if err != nil {
+		log.Fatal(err)
+	}
+	workerShader.SetLightPos(lampPos)
+	workerShader.SetLightColor(lampColor)
+	workerMesh, err := mesh.FromFile(wd + "/resources/meshes/cube.obj")
+	if err != nil {
+		log.Fatal("error loading worker mesh", err)
+	}
+	worker := gameobject.SolidGameObject{
+		Position: mgl32.Vec3{0.0, 2.5, 0.0},
+		Scale:    mgl32.Vec3{0.2, 0.2, 0.2},
+		Mesh:     &workerMesh,
+		Shader:   &workerShader,
+	}
+	theAlmightyWorkerMan := &Worker{}
+	theAlmightyWorkerMan.fsm = *NewFSM()
+	theAlmightyWorkerMan.idleState = WorkerIdleState{worker: theAlmightyWorkerMan}
+	theAlmightyWorkerMan.choppingState = WorkerChoppingState{worker: theAlmightyWorkerMan}
+	theAlmightyWorkerMan.treePickingState = WorkerTreePickingState{worker: theAlmightyWorkerMan}
+	theAlmightyWorkerMan.walkState = WorkerWalkState{worker: theAlmightyWorkerMan}
+
+	theAlmightyWorkerMan.trees = &trees
+	theAlmightyWorkerMan.gameObject = &worker
+	theAlmightyWorkerMan.PickTree()
+	// theAlmightyWorkerMan.currentTarget = trees[0]
+	// closestTree, _ := findClosestTree(trees, &worker)
+
+	//////////////////////////
 
 	cube := makeCube()
 	grid := makeGrid()
@@ -277,6 +441,29 @@ func main() {
 				land[x][z].Render(camera)
 			}
 		}
+		for i := 0; i < len(trees); i++ {
+			trees[i].Update(dt)
+			trees[i].Render(camera)
+		}
+
+		//////// worker //////////
+		// target := trees[closestTree]
+		// moveDir := target.Position.Sub(worker.Position)
+		// moveDir[1] = 0.0 // Don't touch the height
+		// moveDir = moveDir.Normalize()
+		// worker.Position = worker.Position.Add(moveDir.Mul(dt))
+		// dist := worker.Position.Sub(target.Position)
+		// dist[1] = 0.0
+		// d := dist.Len()
+		// if d < 0.05 {
+		// 	trees, totalNrTrees = chopTree(closestTree, trees)
+		// 	closestTree, _ = findClosestTree(trees, &worker)
+		// }
+		theAlmightyWorkerMan.fsm.Run(dt)
+
+		worker.Update(dt)
+		worker.Render(camera)
+		//////////////////////////
 
 		// Render resources
 		cube.Render(camera)
@@ -294,6 +481,37 @@ func main() {
 		window.SwapBuffers()
 		glfw.PollEvents()
 	}
+}
+
+func chopTree(tree *gameobject.SolidGameObject, trees []*gameobject.SolidGameObject) (remainingTrees []*gameobject.SolidGameObject, totalNrTrees int) {
+	nrTrees := len(trees)
+	index := 0
+	for i := 0; i < nrTrees; i++ {
+		if trees[i] == tree {
+			index = i
+			break
+		}
+	}
+	trees[index], trees[nrTrees-1] = trees[nrTrees-1], trees[index]
+	trees = trees[:nrTrees-1]
+	return trees, nrTrees - 1
+}
+
+func findClosestTree(trees []*gameobject.SolidGameObject, worker *gameobject.SolidGameObject) (treeIndex int, targetExists bool) {
+	nrTrees := len(trees)
+	if nrTrees == 0 {
+		return 0, false
+	}
+	closestTree := 0
+	closestSqLen := trees[closestTree].Position.Sub(worker.Position).LenSqr()
+	for i := 0; i < nrTrees; i++ {
+		sqLen := trees[i].Position.Sub(worker.Position).LenSqr()
+		if sqLen < closestSqLen {
+			closestTree = i
+			closestSqLen = sqLen
+		}
+	}
+	return closestTree, true
 }
 
 func makeThing() *gameobject.GameObject {
